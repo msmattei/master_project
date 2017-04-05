@@ -128,58 +128,41 @@ isa2image(data = serum, data2 = urine, type = "ppa", data.isa = metabo.ppa2,
 
 # Cross correlation -------------------------------------------------------
 
-hmdb <- read.table("C://Mimi/Stage_CBG/1.METABOMATCHING/Files/Metabolite/Table_of_peaks180.txt",h= T)
-cross.corr <- matrix(NA, nrow = nrow(urine.modules), ncol = length(unique(hmdb$HMDB_ID)))
+hmdb <- read.table("C://Mimi/Stage_CBG/1.METABOMATCHING/Files/Metabolite/hmdb.20160809.180.slop", h = T)
+
+ppm.corr <- matrix(NA, nrow = nrow(urine.modules), ncol = length(unique(hmdb$HMDB.ID)))
 for(i in 1:nrow(urine.modules)){
-  ppm.u <- as.numeric(sapply(strsplit(isaColNames(data = urine, type = "isa", data.isa = urine.isa, n = i),
-                                    "_"), "[[", 2))
-  for(id in unique(hmdb$HMDB_ID)){
-    ppm <- hmdb$ppm[hmdb$HMDB_ID == id]
-    perc <- round(ifelse(length(id.u) > length(id.s), sum(id.u %in% id.s)/length(id.u), sum(id.s %in% id.u)/length(id.s)), 2)
-    identity[i,j] <- perc
+  ppm.u <- as.numeric(sapply(strsplit(isaColNames(data = urine, type = "isa", data.isa = urine.isa, 
+                                                        n = i), "_"), "[[", 2))
+  for(j in 1:length(unique(hmdb$HMDB.ID))){
+    ppm.hmdb <- hmdb$ppm[hmdb$HMDB.ID  == unique(hmdb$HMDB.ID)[j]]
+    ppm.tot=NULL
+    for(ppm.i in hmdb$ppm[hmdb$HMDB.ID==as.character(id)]){
+      ppm  <- ppm.u[findInterval((ppm.u), c((ppm.i-0.03), (ppm.i+0.03)), rightmost.closed = T)==1]
+      ppm.tot <- unique(c(ppm.tot, ppm))
+    }
+    perc <- length(ppm.tot)/(length(ppm.u)+length(ppm.hmdb))
+    ppm.corr[i,j] <- perc
   }
 }
+colnames(ppm.corr) <- unique(hmdb$HMDB.ID)
+rownames(ppm.corr) <- rownames(urine.modules)
 
 
 
-Table_of_Peaks <- read.table("C:/Mimi/Stage_CBG/1.METABOMATCHING/Files/Metabolite/hmdb.20160809.180.slop", h=T)
-snp <- colnames(read.table("C:/Mimi/Stage_CBG/1.METABOMATCHING/Data/Genotype/hit.snp.genotypes.colaus.urine.20160523.txt", h = T, sep = ","))[-1]
-rico_snp <- c('rs4327428','rs37369','rs17169536','rs4488133','rs10774021','rs7314056','rs676882','rs6510300','rs17273533')
-synonym <- as.data.frame(fread("C:/Mimi/Stage_CBG/1.METABOMATCHING/Files/Metabolite/synonym20160722.txt", h=T))
-synonym <- synonym[!duplicated(synonym$HMDB.ID),]
-
-# Calculate score with mirjam's pseudospectrum ------------------------------
-
-setwd("C:/Mimi/Stage_CBG/Files/Results/score/with.mirjam.ps/")
-for(g in snp){
-  ps <- read.table(paste("C:/Mimi/Stage_CBG/1.METABOMATCHING/Files/Results/Correlation_results/pseudospectrum/mirjam.", 
-                         ".pseudospectrum.tsv", sep = g), h = T)
-  score_final <- NULL
-  for(id in unique(Table_of_Peaks$HMDB.ID)){
-    k=0
-    ppm_ps=NULL
-    for(i in Table_of_Peaks$ppm[Table_of_Peaks$HMDB.ID==as.character(id)]){
-      ppm  <- ppm.u[findInterval((ppm.u), c((i-0.03), (i+0.03)), rightmost.closed = T)==1]
-      ppm_ps <- unique(c(ppm_ps, ppm))
-    }
-    z  <- (ps$beta/ps$se)[ps$shift %in% ppm_ps]
-    if(length(z) == 0){
-      chisq <- 0
-    } else {
-      chisq <- sum(z^2)
-    }
-    k=k+length(z)
-    score <- -log10(pgamma(q = chisq, shape = k/2, scale = 2, lower.tail = F))
-    score_final <- cbind(score_final, score)  
-  }
-  score_final <- as.data.frame(t(score_final))
-  rownames(score_final) <- unique(Table_of_Peaks$HMDB.ID)
-  final_score_log <- merge(data.frame(CAS.ID = unique(Table_of_Peaks$CAS.Number), HMDB.ID = unique(Table_of_Peaks$HMDB.ID), idDat = rep(1, nrow(score_final)), V1 = round(score_final, 4)), synonym)
-  final_score_log2 <- final_score_log[order(final_score_log$V1, decreasing = T),]
-  write.table(final_score_log2, file = paste("mirjam", g, "score.tsv", sep = "."), sep = "\t", row.names = FALSE, col.names = F, quote = F)
-}
 
 # scratch -----------------------------------------------------------------
 
+isa2image(urine, data.isa = urine.isa, type = "isa", n = 5)
+colnames(ppm.corr)[ppm.corr[5,] == max(ppm.corr[5,])]
+par(mfrow = c(2,1))
+plot(hmdb$ppm[hmdb$HMDB.ID=="HMDB04983"], hmdb$adjusted_height[hmdb$HMDB.ID=="HMDB04983"], type = "h", 
+     xlim = c(0,9))
+plot(ppm.u, urine["id_996",unlist(lapply(ppm.u, grep, colnames(urine)))], type = "h", xlim = c(0,9))
 
+max(ppm.corr)
+
+urine[5, 1:10]
+metabolome["102",1:10]
+isa2image(urine, data.isa = urine.isa, type = "isa", n = 1)
 
