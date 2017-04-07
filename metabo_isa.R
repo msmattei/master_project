@@ -151,6 +151,7 @@ rownames(ppm.corr) <- rownames(urine.modules)
 
 
 
+
 # scratch -----------------------------------------------------------------
 
 isa2image(urine, data.isa = urine.isa, type = "isa", n = 5)
