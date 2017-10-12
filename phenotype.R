@@ -1,10 +1,25 @@
 
+# Specify OS system: ------------------------------------------------------
+
+### for windows
+pathOS <- "C://"
+### for linux
+pathOS <- "/media/mirjam/OS/"
+
+# Import package ----------------------------------------------------------
+library(isa2)
+library(gplots)
+library(ggplot2)
+
+# ISA (and other) functions  ----------------------------------------------
+source(paste0(pathOS, 'Mimi/Stage_CBG/2.EXPRESSION_MODULE/expression_module/ISA_functions.R'))
+source(paste0(pathOS, 'Mimi/UNI/Master/MLS_BIOINFORMATICS/Master_Project_MLS/master_project/functions.R'))
 
 
-# Phenotype ---------------------------------------------------------------
-pheno           <- read.csv(paste0(pathOS, "/Mimi/UNI/Master/MLS_BIOINFORMATICS/Master_Project_MLS/data/traits.raw.colaus1.20161116.csv"), h = F, sep = ",", stringsAsFactors = T)
-pheno_transf    <- read.csv(paste0(pathOS, "/Mimi/UNI/Master/MLS_BIOINFORMATICS/Master_Project_MLS/data/traits.transformed.colaus1.20161116.csv"), h = F, sep = ",")
-pheno_names     <- read.csv(paste0(pathOS, "/Mimi/UNI/Master/MLS_BIOINFORMATICS/Master_Project_MLS/data/trait_names.raw.colaus1.20161116.csv"), h = F, sep = ",")
+# data loading ---------------------------------------------------------------
+pheno           <- read.csv(paste0(pathOS, "/Mimi/UNI/Master/MLS_BIOINFORMATICS/Master_Project_MLS/data/phenotype/traits.raw.colaus1.20161116.csv"), h = F, sep = ",", stringsAsFactors = T)
+pheno_transf    <- read.csv(paste0(pathOS, "/Mimi/UNI/Master/MLS_BIOINFORMATICS/Master_Project_MLS/data/phenotype/traits.transformed.colaus1.20161116.csv"), h = F, sep = ",")
+pheno_names     <- read.csv(paste0(pathOS, "/Mimi/UNI/Master/MLS_BIOINFORMATICS/Master_Project_MLS/data/phenotype/trait_names.raw.colaus1.20161116.csv"), h = F, sep = ",")
 colnames(pheno) <- c("ID", as.character(pheno_names$V1))
 colnames(pheno_transf) <- c("ID", as.character(pheno_names$V1))
 pheno$ID        <- paste0("id", pheno$ID)
@@ -27,6 +42,11 @@ ggplot() +
   theme_bw() +
   theme(axis.text=element_text(size=16, face="bold"),axis.title=element_text(size=16, face="bold"))
 
+# number of female/man
+# 
+
+# boxplots ----------------------------------------------------------------
+
 pheno$age_class <- cut(pheno$AGE, seq(30, 80, by = 5))
 boxplot(pheno$GLUC~pheno$age_class)
 boxplot(pheno$SBP~pheno$age_class)
@@ -48,6 +68,13 @@ boxplot(pheno$ADTRN~pheno$SEX)
 
 plot(pheno$AGE, pheno$GLUC)
 
+# correlated variables ----------------------------------------------------
+
+summary(lm(CHOL ~ BMI, data = pheno))
+
+
+# test model --------------------------------------------------------------
+
 model <- lm(CHOL ~ SEX + AGE + BMI + PHYACT, data = pheno)
 model2 <- glm(CHOL ~ SEX + AGE + BMI + PHYACT, data = pheno)
 summary(lm(CHOL ~ as.factor(SEX) + AGE + BMI + as.factor(PHYACT) + as.factor(SMK), data = pheno))
@@ -58,6 +85,8 @@ summary(lm(LDLCH ~ SEX + AGE + BMI + PHYACT, data = pheno))
 summary(lm(ADTRN ~ SEX + AGE + BMI + PHYACT, data = pheno))
 
 summary(lm(CHOL ~ BMI, data = pheno))
+
+# modules - phenotype correlation -----------------------------------------
 
 ## Looking if some module are related to any kind of phenotype
 ## selecti individuals present in the metabolomics data
