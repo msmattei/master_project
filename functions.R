@@ -39,6 +39,14 @@ identity <- function(data1, data2, data.isa1, data.isa2, modules1, modules2, sel
 
 # other functions ---------------------------------------------------------
 
+## classes extraction function:
+classes <- function(data, from, to, by, variable_name, variable_name2) {
+  data_df <- data.frame(data)
+  data_df$variable_class <- cut(as.numeric(unlist(data[colnames(data) %in% variable_name])), seq(from, to, by))
+  return(as.data.frame(table(data_df[,colnames(data_df) %in% c("variable_class", variable_name2)])))
+}
+
+
 ## t.test variables 
 
 t.test.variable <- function(phenotype.data, metabo.data, metabo.isa, variable1){
