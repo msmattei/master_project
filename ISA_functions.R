@@ -36,7 +36,7 @@ isaModules <- function(data.isa, type = "isa") {
     colnames(modules) <- c("colGroups", "row1Groups","row2Groups", "rob", "thr.col", "thr.row1", "thr.row2")
     rownames(modules) <- paste0("Module", 1:nrow(modules))
   }
-  print(modules)
+  return(modules)
 }
 
 # Extract modules informations ----------------------------------------------------
@@ -136,7 +136,7 @@ isa.run <- function(data, thr.row=seq(0.5,1.5,by=0.5),
   result$rundata$N <- sum(sapply(isaresults, function(x) x$rundata$N))
   
   ## Another filtering
-  result <- isa.unique(normed.data, result, cor.limit = 0.8)
+  result <- isa.unique(normed.data, result, cor.limit = cor.limit)
   
   ## We are done
   result
