@@ -15,7 +15,7 @@ isaModules <- function(data.isa, type = "isa") {
       colGroups[i] <- sum(data.isa$columns[,i] != 0)
       rowGroups[i] <- sum(data.isa$rows[,i] != 0)
     }
-    modules <- data.frame(colGroups, rowGroups, rob = data.isa$seeddata$rob,  
+    modules <- data.frame(colGroups, rowGroups, rob = round(data.isa$seeddata$rob, 2),  
                           thr.col = data.isa$seeddata$thr.col, thr.row = data.isa$seeddata$thr.row)
     colnames(modules) <- c("colGroups", "rowGroups", "rob", "thr.col", "thr.row")
     rownames(modules) <- paste0("Module", 1:nrow(modules))
@@ -39,7 +39,7 @@ isaModules <- function(data.isa, type = "isa") {
   return(modules)
 }
 
-# Extract modules informations ----------------------------------------------------
+# Extract informations ----------------------------------------------------
 # extract row names for a module of interest
 isaRowNames <- function(data, data.isa, n, data2 = NULL, type = "isa"){
   if(type == "isa"){
@@ -52,9 +52,9 @@ isaRowNames <- function(data, data.isa, n, data2 = NULL, type = "isa"){
     isaRow1 = data.isa$rows1[, n] != 0
     isaRow2 = data.isa$rows2[, n] != 0
     isaCol = data.isa$columns[, n] != 0
-    module.n1 <- t(data)[isaRow1, isaCol, drop=FALSE]
-    module.n2 <- t(data2)[isaRow2, isaCol, drop=FALSE]
-    return(list(data1 = colnames(module.n1), data2 = colnames(module.n2)))
+    module.n1 <- data[isaRow1, isaCol, drop=FALSE]
+    module.n2 <- data2[isaRow2, isaCol, drop=FALSE]
+    return(list(data1 = rownames(module.n1), data2 = rownames(module.n2)))
   }
 }
 
@@ -67,17 +67,13 @@ isaColNames <- function(data, data.isa, n, data2 = NULL, type = "isa"){
     return(colnames(module.n))
   }
   if(type == "ppa"){
-    isaRow1 = data.isa$rows1[, n] != 0
-    isaRow2 = data.isa$rows2[, n] != 0
     isaCol = data.isa$columns[, n] != 0
-    module.n1 <- t(data)[isaRow1, isaCol, drop=FALSE]
-    module.n2 <- t(data2)[isaRow2, isaCol, drop=FALSE]
-    return(list(data1 = rownames(module.n1), data2 = rownames(module.n2)))
+    return(colnames(module.n1), data2 = rownames(module.n2))
   }
 }
 
-# extracting the score from a module of interest
-isaScore <- function(data, data.isa, n, Row = FALSE, Col = FALSE){
+# extracting the score from a module of interest (for row and columns)
+isaScore <- function(data, data.isa, n){
     isaRow = data.isa$rows[, n] != 0
     isaNames <- rownames(data)[isaRow]
     scoreRow <- data.frame(RowScore = data.isa$row[isaRow, n], row.names = isaNames)
@@ -89,26 +85,28 @@ isaScore <- function(data, data.isa, n, Row = FALSE, Col = FALSE){
   return(list(scoreRow, scoreCol))
 }
 
-
 # ISA run -----------------------------------------------------------------
 # run the different isa steps with the parameteres that better fits to my needs
 # i.e. aiming to have:
-# 1) a way to reproduce the results (need to create row.seeds)
-# 2) Choose the correlation value to consider two module as equal (cor.limit, from the isa.unique function)
+# 1) a way to reproduce the results (need to create row.seeds in a reproducible way)
+# 2) Choose the correlation value to consider two module as equal 
+#    (cor.limit, from the isa.unique function)
 # 
 
-isa.run <- function(data, thr.row=seq(0.5,1.5,by=0.5),
+isa.run <- function(data, 
+                    thr.row=seq(0.5,1.5,by=0.5),
                     thr.col=seq(0.5,1.5,by=0.5),
-                    row.seeds, direction=c("updown", "updown"),
-                    cor.limit = 0.8) {
-  ## Normalize the matrix
+                    row.seeds, 
+                    direction=c("updown", "updown"),
+                    cor.limit = 0.9) {
+  ## Normalize the matrix (using isa.normalize() function)
   normed.data <- isa.normalize(data)
   
-  ## Determine thresholds
+  ## Determine thresholds (expand.grid() create a data frame with all possible combination of thresholds)
   thr.list <- expand.grid(thr.row=thr.row, thr.col=thr.col)
-  thr.list <- unlist(apply(thr.list, 1, list), recursive=FALSE)
+  thr.list <- unlist(apply(thr.list, 1, list), recursive=FALSE) # make a list with the possible thresholds combination
   
-  ## Do the ISA, for all thresholds
+  ## Do the ISA, for all thresholds (lapply())
   isaresults <- lapply(thr.list, function(x)
     isa.iterate(normed.data,
                 row.seeds=row.seeds,
@@ -145,28 +143,44 @@ isa.run <- function(data, thr.row=seq(0.5,1.5,by=0.5),
 # Module visualization ----------------------------------------------------
 # heatmap of one module of interest
 
-isa2image <- function(data, data2 = NULL, data.isa, type = "isa", n, name1 = NULL, name2 = NULL, cex = 0.6, color1 = "red", color2 = "yellow", all = FALSE){
+isa2image <- function(data, 
+                      data.isa, 
+                      n, 
+                      type = "isa", 
+                      data2 = NULL, 
+                      name1 = NULL, 
+                      name2 = NULL, 
+                      cex = 0.6, 
+                      color1 = "red", 
+                      color2 = "white", 
+                      all = FALSE){
   if(type == "isa"){
     colors <- colorRampPalette(c(color1, color2))(n = 10000)
     isaRow = data.isa$rows[, n] != 0
     isaCol = data.isa$columns[, n] != 0
-    module.n <- t(as.matrix(data[isaRow, isaCol, drop=FALSE]))
-    ColorUsed <- colors[round(1+(min(module.n)-min(data))*10000/(max(data)-min(data))) : round( (max(module.n)-min(data))*10000/(max(data)-min(data)) )]
-    image(module.n, axes = F, main = paste("Module",  n), col=ColorUsed)
-    mtext(text=colnames(module.n), side=2, line=0.3, at=seq(0,1,l=ncol(module.n)), las=2, cex = cex)
-    mtext(text=rownames(module.n), side=1, line=0.3, at=seq(0,1,l=nrow(module.n)), las=2, cex = cex)
-    # if(all == TRUE){
-    #   allCol <- c(colnames(module.n), rownames(data)[!rownames(data) %in% colnames(module.n)])
-    #   allRow <- c(rownames(module.n), colnames(data)[!colnames(data) %in% rownames(module.n)])
-    #   image(as.matrix(t(data[allCol, allRow])), axes = F)
-    # }
+    module.n <- as.matrix(data[isaRow, isaCol, drop=FALSE])
+    ColorUsed <- colors[round(1+(min(module.n, na.rm = T)-min(data, na.rm = T))*10000/
+                                (max(data, na.rm = T)-min(data, na.rm = T))) : round(
+                                  (max(module.n, na.rm = T)-min(data, na.rm = T))*10000/(max(data, na.rm = T)-min(data, na.rm = T)) )]
+    if(all == TRUE){
+      allRow <- c(rownames(module.n), rownames(data)[!rownames(data) %in% rownames(module.n)])
+      allCol <- c(colnames(module.n), colnames(data)[!colnames(data) %in% colnames(module.n)])
+      image(data[allRow, allCol], axes = F, col=colors, main = paste("Module",  n))
+      v <- nrow(module.n)/nrow(data)
+      h <- ncol(module.n)/ncol(data)
+      abline(h = h, v = v)
+    } else {
+      image(t(module.n), axes = F, main = paste("Module",  n), col=ColorUsed)
+      mtext(text=rownames(module.n), side=2, line=0.3, at=seq(0,1,l=nrow(module.n)), las=2, cex = cex)
+      mtext(text=colnames(module.n), side=1, line=0.3, at=seq(0,1,l=ncol(module.n)), las=2, cex = cex)
+    }
   }
   if(type == "ppa"){
     isaRow1 = data.isa$rows1[, n] != 0
     isaRow2 = data.isa$rows2[, n] != 0
     isaCol = data.isa$columns[, n] != 0
-    module.n1 <- t(data)[isaRow1, isaCol, drop=FALSE]
-    module.n2 <- t(data2)[isaRow2, isaCol, drop=FALSE]
+    module.n1 <- data[isaRow1, isaCol, drop=FALSE]
+    module.n2 <- data2[isaRow2, isaCol, drop=FALSE]
     par(mfrow = c(1,2))
     image(module.n1, axes = F, main = paste("Module",  n, name1))
     mtext(text=colnames(module.n1), side=2, line=0.3, at=seq(0,1,l=ncol(module.n1)), las=2, cex = cex)
@@ -175,14 +189,15 @@ isa2image <- function(data, data2 = NULL, data.isa, type = "isa", n, name1 = NUL
     mtext(text=colnames(module.n2), side=2, line=0.3, at=seq(0,1,l=ncol(module.n2)), las=2, cex = cex)
     mtext(text=rownames(module.n2), side=1, line=0.3, at=seq(0,1,l=nrow(module.n2)), las=2, cex = cex)
     par(mfrow = c(1,1))
-  }
-  if(all == TRUE){
-    isaRow <- c(rownames(data)[data.isa$rows[, n] != 0], rownames(data)[data.isa$rows[, n] == 0])
-    isaCol <- c(colnames(data)[data.isa$columns[, n] != 0], colnames(data)[data.isa$columns[, n] == 0])
-    module.n   <- t(as.matrix(data[isaRow, isaCol, drop=FALSE]))
-    image(module.n, axes = F, main = paste("Module",  n))
-    mtext(text=colnames(module.n), side=2, line=0.3, at=seq(0,1,l=ncol(module.n)), las=2, cex = cex)
-    mtext(text=rownames(module.n), side=1, line=0.3, at=seq(0,1,l=nrow(module.n)), las=2, cex = cex)
+    if(all == TRUE){
+      isaRow <- c(rownames(data)[data.isa$rows[, n] != 0], rownames(data)[data.isa$rows[, n] == 0])
+      isaCol <- c(colnames(data)[data.isa$columns[, n] != 0], colnames(data)[data.isa$columns[, n] == 0])
+      module.n   <- t(as.matrix(data[isaRow, isaCol, drop=FALSE]))
+      image(module.n, axes = F, main = paste("Module",  n))
+      mtext(text=colnames(module.n), side=2, line=0.3, at=seq(0,1,l=ncol(module.n)), las=2, cex = cex)
+      mtext(text=rownames(module.n), side=1, line=0.3, at=seq(0,1,l=nrow(module.n)), las=2, cex = cex)
+    }
+    
   }
 }
 
@@ -198,14 +213,30 @@ isa2image <- function(data, data2 = NULL, data.isa, type = "isa", n, name1 = NUL
 ## z score can be used to calculate the corresponding p-value (using the pt() function)
 
 
-last.iteration <- function(data, data.isa, Col = FALSE){
+last.iteration <- function(data, data.isa, Col = FALSE, type = "isa", data2 = FALSE){
   data.norm <- isa.normalize(data)
-  if(Col == TRUE) {
-    score <- apply(X = data.isa$rows, MARGIN = 2, function(x) data.norm$Er%*%x)
-    score <- apply(score, MARGIN = 2, function(x) (x-mean(x))/sd(x))
+  if(type == "isa"){
+    if(Col == TRUE) {
+      score <- apply(X = data.isa$rows, MARGIN = 2, function(x) data.norm$Er%*%x)
+      score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
     } else {
-    score <- apply(X = data.isa$columns, MARGIN = 2, function(x) data.norm$Ec%*%x)
-    score <- apply(score, MARGIN = 2, function(x) (x-mean(x))/sd(x))
+      score <- apply(X = data.isa$columns, MARGIN = 2, function(x) data.norm$Ec%*%x)
+      score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
+    }
+  }
+  if(type == "ppa"){
+    if(data2 == TRUE){
+      rows <- "rows2"
+    } else {
+      rows <- "rows1"
+    }
+    if(Col == TRUE) {
+      score <- apply(X = data.isa[[rows]], MARGIN = 2, function(x) data.norm$Er%*%x)
+      score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
+    } else {
+      score <- apply(X = data.isa$columns, MARGIN = 2, function(x) data.norm$Ec%*%x)
+      score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
+    }
   }
   return(score)
 }

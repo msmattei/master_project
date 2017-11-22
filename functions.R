@@ -1,17 +1,19 @@
-## metabomatching input for phenomenal
 
-metabomatching_input <- function(data, data.isa, ppm){
-  score <- last.iteration(as.matrix(data), data.isa, Col = TRUE)
+## metabomatching input for phenomenal
+## calls last.iteration function (to calculate the z-score for each of the metabolome features)
+
+metabomatching_input <- function(data, data.isa, ppm, Col = TRUE){
+  score <- last.iteration(as.matrix(data), data.isa, Col = Col)
   input <- data.frame(shift = as.numeric(ppm))
   for (i in 1:ncol(score)){
     input <- cbind(input, 
                    score[,i], 
                    rep(1, ncol(data)),
                    2*pnorm(-abs(score[,i])))
-    colnames(input)[colnames(input) %in% c("score[, i]", "rep(1, ncol(data))",
-                                           "2 * pnorm(-abs(score[, i]))")] <- c(paste0("beta/m", i), 
-                                                                                paste0("se/m", i),
-                                                                                paste0("p/m", i))
+    colnames(input)[colnames(input) %in% c("score[, i]", "rep(1, nrow(data))",
+                                           "2 * pnorm(-abs(score[, i]))")] <- c(sprintf("beta/m%03d", i), 
+                                                                                sprintf("se/m%03d", i),
+                                                                                sprintf("p/m%03d", i))
   }
   return(input)  
 }
@@ -19,7 +21,7 @@ metabomatching_input <- function(data, data.isa, ppm){
 
 # Identity function -------------------------------------------------------
 # this function check the identity between modules created 
-# using different datasets, or parameters
+# using different datasets (or using different parameters)
 # 
 
 ## Identity function
@@ -36,7 +38,7 @@ identity <- function(data1, data2, data.isa1, data.isa2, sel = 0, Col = FALSE){
     }
   } else {
     for(i in 1:ncol(data.isa1$rows)){
-      id1 <- isaRowNames(data = data1, type = "isa", data.isa = data.isa1, n = i)
+      id1 <- isaRowNames(data = data1, data.isa = data.isa1, n = i, type = "isa")
       for(j in 1:ncol(data.isa2$rows)){
         id2 <- isaRowNames(data = data2, type = "isa", data.isa = data.isa2, n = j)
         perc <- round(ifelse(length(id1) > length(id2), sum(id1 %in% id2)/length(id1), sum(id2 %in% id1)/length(id2)), 2)
@@ -57,7 +59,7 @@ identity <- function(data1, data2, data.isa1, data.isa2, sel = 0, Col = FALSE){
 
 # other functions ---------------------------------------------------------
 
-## classes extraction function:
+## classes extraction function: (for example to extract the age classes)
 classes <- function(data, from, to, by, variable_name, variable_name2) {
   data_df <- data.frame(data)
   data_df$variable_class <- cut(as.numeric(unlist(data[colnames(data) %in% variable_name])), seq(from, to, by))
@@ -65,7 +67,7 @@ classes <- function(data, from, to, by, variable_name, variable_name2) {
 }
 
 
-## t.test variables 
+## t.test variables (not used anymore. We decided to use the linear regression with the z-score for each individuals)
 
 t.test.variable <- function(phenotype.data, metabo.data, metabo.isa, variable1){
   p_val = NULL
