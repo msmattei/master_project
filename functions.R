@@ -1,3 +1,16 @@
+## matrix multiplication in the presence of NA: (Gabor's function)
+
+na.multiply <- function(A, B) {
+  M <- !is.na(A)
+  modA <- A
+  modA[!M] <- 0
+  v <- modA %*% B
+  w <- sqrt(M %*% B^2)
+  w2 <- sqrt(apply(B^2, 2, sum))
+  ret <- v/w * rep(w2, each=nrow(v))
+  ret[ w==0 ] <- 0
+  ret
+}
 
 ## metabomatching input for phenomenal
 ## calls last.iteration function (to calculate the z-score for each of the metabolome features)
@@ -10,7 +23,7 @@ metabomatching_input <- function(data, data.isa, ppm, Col = TRUE){
                    score[,i], 
                    rep(1, ncol(data)),
                    2*pnorm(-abs(score[,i])))
-    colnames(input)[colnames(input) %in% c("score[, i]", "rep(1, nrow(data))",
+    colnames(input)[colnames(input) %in% c("score[, i]", "rep(1, ncol(data))",
                                            "2 * pnorm(-abs(score[, i]))")] <- c(sprintf("beta/m%03d", i), 
                                                                                 sprintf("se/m%03d", i),
                                                                                 sprintf("p/m%03d", i))

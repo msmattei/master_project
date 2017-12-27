@@ -217,10 +217,10 @@ last.iteration <- function(data, data.isa, Col = FALSE, type = "isa", data2 = FA
   data.norm <- isa.normalize(data)
   if(type == "isa"){
     if(Col == TRUE) {
-      score <- apply(X = data.isa$rows, MARGIN = 2, function(x) data.norm$Er%*%x)
+      score <- na.multiply(data.norm$Er, data.isa$rows)
       score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
     } else {
-      score <- apply(X = data.isa$columns, MARGIN = 2, function(x) data.norm$Ec%*%x)
+      score <- na.multiply(data.norm$Ec, data.isa$columns)
       score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
     }
   }
@@ -231,10 +231,10 @@ last.iteration <- function(data, data.isa, Col = FALSE, type = "isa", data2 = FA
       rows <- "rows1"
     }
     if(Col == TRUE) {
-      score <- apply(X = data.isa[[rows]], MARGIN = 2, function(x) data.norm$Er%*%x)
+      score <- na.multiply(data.norm$Er, data.isa$rows)
       score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
     } else {
-      score <- apply(X = data.isa$columns, MARGIN = 2, function(x) data.norm$Ec%*%x)
+      score <- na.multiply(data.norm$Ec, data.isa$columns)
       score <- apply(score, MARGIN = 2, function(x) (x-mean(x, na.rm = T))/sd(x, na.rm = T))
     }
   }
